@@ -1,0 +1,72 @@
+name: publish swagger ui
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  generate-openapi-spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - name: Generate API Specs
+        run: ./gradlew resolve
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: resources/openapi/yaml
+
+  generate-swagger-ui:
+    needs: generate-openapi-spec
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        apiGroup: [ 'public-api', 'management-api', 'control-api' ]
+    env:
+      rootDir: resources/openapi/yaml/${{ matrix.apiGroup }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: openapi-spec
+          path: resources/openapi/yaml
+      - run: ls -R resources
+      - uses: eclipse-edc/.github/.github/actions/setup-build@main
+
+      # merge together all api groups
+      - name: Generate API Specs
+        run: |
+          ./gradlew -PapiTitle="${{ matrix.apiGroup }}" -PapiDescription="REST API documentation for the ${{ matrix.apiGroup }}" :mergeApiSpec --input=${{ env.rootDir }} --output=${{ matrix.apiGroup }}.yaml
+
+      - name: extract version
+        run: echo "VERSION=$(grep version= gradle.properties | cut -c 9-)" >> $GITHUB_ENV
+
+      - name: Generate Swagger UI
+        uses: Legion2/swagger-ui-action@v1
+        with:
+          output: swagger-ui/${{ env.VERSION }}
+          spec-file: ${{ matrix.apiGroup }}.yaml
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.apiGroup }}
+          path: swagger-ui
+
+
+  deploy-swagger-ui:
+    needs: generate-swagger-ui
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: swagger-ui
+          pattern: "*-api"
+      - run: ls -R
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: swagger-ui
+          keep_files: true
