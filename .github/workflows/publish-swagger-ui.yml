@@ -2,7 +2,12 @@ name: publish swagger ui
 
 on:
   push:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      groups:
+        required: true
+        description: "API group names"
+        type: string
 
 jobs:
   generate-openapi-spec:
@@ -67,7 +72,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          path: swagger-ui
+          path: swagger-ui/openapi
           pattern: "*-api"
       - run: ls -R
       - name: Deploy to GitHub Pages
