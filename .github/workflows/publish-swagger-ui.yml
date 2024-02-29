@@ -42,12 +42,18 @@ jobs:
       - name: extract version
         run: echo "VERSION=$(grep version= gradle.properties | cut -c 9-)" >> $GITHUB_ENV
 
-      - name: Generate Swagger UI
+      - name: Generate Swagger UI current version
         uses: Legion2/swagger-ui-action@v1
         with:
           output: swagger-ui/${{ env.VERSION }}
           spec-file: ${{ matrix.apiGroup }}.yaml
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Swagger UI stable version
+        uses: Legion2/swagger-ui-action@v1
+        if: ${{ !endsWith( env.VERSION, '-SNAPSHOT') }}
+        with:
+          output: swagger-ui
+          spec-file: ${{ matrix.apiGroup }}.yaml
 
       - uses: actions/upload-artifact@v4
         with:
