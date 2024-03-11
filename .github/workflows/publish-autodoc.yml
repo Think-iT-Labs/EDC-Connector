@@ -9,16 +9,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
+
       - name: Generate docs
         run: ./gradlew autodoc
       - name: Merge manifests
         run: ./gradlew mergeManifest
       - name: Render markdown
         run: ./gradlew doc2md
+
+      - name: extract version
+        run: echo "VERSION=$(grep version= gradle.properties | cut -c 9-)" >> $GITHUB_ENV
+
       - name: Prepare deploy folder
         run: |
-          mkdir -p deploy/autodoc
-          mv build/*.md deploy/autodoc/README.md
+          mkdir -p deploy/autodoc/${{ env.VERSION }}
+          cp build/*.md deploy/autodoc/${{ env.VERSION }}/README.md
+
+      - name: Deploy documentation stable version
+        if: ${{ !endsWith( env.VERSION, '-SNAPSHOT') }}
+        run:
+          cp build/*.md deploy/autodoc
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
