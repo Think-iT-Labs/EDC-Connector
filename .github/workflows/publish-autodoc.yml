@@ -23,12 +23,12 @@ jobs:
       - name: Prepare deploy folder
         run: |
           mkdir -p deploy/autodoc/${{ env.VERSION }}
-          cp build/*.md deploy/autodoc/${{ env.VERSION }}/README.md
+          pandoc  --from gfm --to html build/*.md > deploy/autodoc/${{ env.VERSION }}/index.html
 
       - name: Deploy documentation stable version
         if: ${{ !endsWith( env.VERSION, '-SNAPSHOT') }}
         run:
-          cp build/*.md deploy/autodoc
+          pandoc  --from gfm --to html build/*.md > deploy/autodoc/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
