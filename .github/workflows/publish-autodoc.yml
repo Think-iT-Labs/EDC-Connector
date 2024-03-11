@@ -21,14 +21,18 @@ jobs:
         run: echo "VERSION=$(grep version= gradle.properties | cut -c 9-)" >> $GITHUB_ENV
 
       - name: Prepare deploy folder
-        run: |
-          mkdir -p deploy/autodoc/${{ env.VERSION }}
-          pandoc  --from gfm --to html build/*.md > deploy/autodoc/${{ env.VERSION }}/index.html
+        run: mkdir -p deploy/autodoc/${{ env.VERSION }}
 
-      - name: Deploy documentation stable version
+      - name: Render html
+        uses: docker://pandoc/core:latest
+        with:
+          args: --standalone --from gfm --to html --output deploy/autodoc/${{ env.VERSION }}/index.html build/connector.md
+
+      - name: Render html for stable version
         if: ${{ !endsWith( env.VERSION, '-SNAPSHOT') }}
-        run:
-          pandoc  --from gfm --to html build/*.md > deploy/autodoc/index.html
+        uses: docker://pandoc/core:latest
+        with:
+          args: --standalone --from gfm --to html --output deploy/autodoc/index.html build/connector.md
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
