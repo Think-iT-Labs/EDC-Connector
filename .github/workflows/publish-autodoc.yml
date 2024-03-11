@@ -1,4 +1,4 @@
-name: publish openapi ui
+name: publish autodoc
 
 on:
   push:
@@ -23,5 +23,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: autodoc
+          publish_dir: deploy
           keep_files: true
