@@ -1,0 +1,27 @@
+name: publish openapi ui
+
+on:
+  push:
+
+jobs:
+  generate-and-deploy-doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - name: Generate docs
+        run: ./gradlew autodoc
+      - name: Merge manifests
+        run: ./gradlew mergeManifest
+      - name: Render markdown
+        run: ./gradlew doc2md
+      - name: Prepare deploy folder
+        run: |
+          mkdir -p deploy/autodoc
+          mv build/*.md deploy/autodoc/README.md
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: autodoc
+          keep_files: true
