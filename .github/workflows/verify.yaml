@@ -38,22 +38,36 @@ jobs:
       - name: Run Javadoc
         run: ./gradlew javadoc
 
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: eclipse-edc/.github/.github/actions/setup-build@main
+      - run: ./gradlew testClasses
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: .
+
   Unit-Tests:
+    needs: [ Build ]
     runs-on: ubuntu-latest
     env:
       JACOCO: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
-
       - name: Run unit tests
         uses: eclipse-edc/.github/.github/actions/run-tests@main
         with:
-          command: ./gradlew test jacocoTestReport
+          command: |
+            cd build
+            chmod +x gradlew
+            ./gradlew test jacocoTestReport
 
   Postgresql-Integration-Tests:
+    needs: [ Build ]
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:14.2
@@ -61,51 +75,64 @@ jobs:
           - 5432:5432
         env:
           POSTGRES_PASSWORD: password
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
-
       - name: Postgresql Tests
         uses: eclipse-edc/.github/.github/actions/run-tests@main
         with:
-          command: ./gradlew test -DincludeTags="PostgresqlIntegrationTest"
+          command: |
+            cd build
+            chmod +x gradlew
+            ./gradlew test -DincludeTags="PostgresqlIntegrationTest"
 
   End-To-End-Tests:
+    needs: [ Build ]
+    env:
+      JACOCO: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
-      - name: End to End Integration Tests
+      - name: End to End Tests
         uses: eclipse-edc/.github/.github/actions/run-tests@main
         with:
-          command: ./gradlew test jacocoTestReport -DincludeTags="EndToEndTest"
+          command: |
+            cd build
+            chmod +x gradlew
+            ./gradlew test jacocoTestReport -DincludeTags="EndToEndTest"
 
   Component-Tests:
+    needs: [ Build ]
     env:
       JACOCO: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
-
       - name: Component Tests
         uses: eclipse-edc/.github/.github/actions/run-tests@main
         with:
-          command: ./gradlew test jacocoTestReport -DincludeTags="ComponentTest"
+          command: |
+            cd build
+            chmod +x gradlew
+            ./gradlew test jacocoTestReport -DincludeTags="ComponentTest"
 
   API-Tests:
+    needs: [ Build ]
     env:
       JACOCO: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - uses: eclipse-edc/.github/.github/actions/setup-build@main
-
-      - name: Component Tests
+      - name: Api Tests
         uses: eclipse-edc/.github/.github/actions/run-tests@main
         with:
-          command: ./gradlew test jacocoTestReport -DincludeTags="ApiTest"
+          command: |
+            cd build
+            chmod +x gradlew
+            ./gradlew test jacocoTestReport -DincludeTags="ApiTest"
 
   Upload-Test-Report:
     needs:
@@ -143,7 +170,7 @@ jobs:
     if: always()
     steps:
       # Sources are needed for Codecov report
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
